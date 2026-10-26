@@ -1,0 +1,356 @@
+{
+  "mode": "LOCAL_SIMULATION",
+  "generatedAt": "2026-10-26T05:37:07.464Z",
+  "limitations": [
+    "In-memory DB and mocked WebAuthn verifier; not real device or deployment HTTP evidence.",
+    "Private records are synthetic. No actual account or user content is loaded.",
+    "Cookie values omitted. Production handlers do not expose a test bypass."
+  ],
+  "loginSetup": {
+    "A": {
+      "status": 200,
+      "authenticated": true
+    },
+    "B": {
+      "status": 200,
+      "authenticated": true
+    }
+  },
+  "passed": 11,
+  "entries": [
+    {
+      "id": "anonymous-denied",
+      "account": "none",
+      "request": {
+        "method": "GET",
+        "path": "/api/private-info",
+        "headers": {}
+      },
+      "response": {
+        "status": 401,
+        "cacheControl": "private, no-store, max-age=0",
+        "body": {
+          "error": "AUTH_REQUIRED",
+          "message": "비공개 정보는 패스키 로그인 후 확인할 수 있습니다."
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "A-own",
+      "account": "A",
+      "request": {
+        "method": "GET",
+        "path": "/api/private-info",
+        "headers": {
+          "Cookie": "[REDACTED]"
+        }
+      },
+      "response": {
+        "status": 200,
+        "cacheControl": "private, no-store, max-age=0",
+        "body": {
+          "items": [
+            {
+              "id": "0-1",
+              "kind": "project-note",
+              "title": "가상 검증 항목 1",
+              "content": "A private test marker 1"
+            },
+            {
+              "id": "0-2",
+              "kind": "personal-goal",
+              "title": "가상 검증 항목 2",
+              "content": "A private test marker 2"
+            },
+            {
+              "id": "0-3",
+              "kind": "reflection",
+              "title": "가상 검증 항목 3",
+              "content": "A private test marker 3"
+            }
+          ],
+          "expiresAt": "2026-10-26T06:37:07.457Z"
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "A-to-B",
+      "account": "A",
+      "request": {
+        "method": "GET",
+        "path": "/api/private-info?userId=22222222-2222-4222-8222-222222222222",
+        "headers": {
+          "Cookie": "[REDACTED]"
+        }
+      },
+      "response": {
+        "status": 403,
+        "cacheControl": "private, no-store, max-age=0",
+        "body": {
+          "error": "FORBIDDEN"
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "B-own",
+      "account": "B",
+      "request": {
+        "method": "GET",
+        "path": "/api/private-info",
+        "headers": {
+          "Cookie": "[REDACTED]"
+        }
+      },
+      "response": {
+        "status": 200,
+        "cacheControl": "private, no-store, max-age=0",
+        "body": {
+          "items": [
+            {
+              "id": "1-1",
+              "kind": "project-note",
+              "title": "가상 검증 항목 1",
+              "content": "B private test marker 1"
+            },
+            {
+              "id": "1-2",
+              "kind": "personal-goal",
+              "title": "가상 검증 항목 2",
+              "content": "B private test marker 2"
+            },
+            {
+              "id": "1-3",
+              "kind": "reflection",
+              "title": "가상 검증 항목 3",
+              "content": "B private test marker 3"
+            }
+          ],
+          "expiresAt": "2026-10-26T06:37:07.459Z"
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "B-to-A",
+      "account": "B",
+      "request": {
+        "method": "GET",
+        "path": "/api/private-info?userId=11111111-1111-4111-8111-111111111111",
+        "headers": {
+          "Cookie": "[REDACTED]"
+        }
+      },
+      "response": {
+        "status": 403,
+        "cacheControl": "private, no-store, max-age=0",
+        "body": {
+          "error": "FORBIDDEN"
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "A-body-tamper",
+      "account": "A",
+      "request": {
+        "method": "POST",
+        "path": "/api/private-info",
+        "headers": {
+          "Cookie": "[REDACTED]",
+          "Content-Type": "application/json",
+          "Origin": "https://alepht08passkeyportfolio.vercel.app"
+        },
+        "body": {
+          "userId": "22222222-2222-4222-8222-222222222222",
+          "user_id": "22222222-2222-4222-8222-222222222222",
+          "owner_id": "22222222-2222-4222-8222-222222222222"
+        }
+      },
+      "response": {
+        "status": 200,
+        "cacheControl": "private, no-store, max-age=0",
+        "body": {
+          "items": [
+            {
+              "id": "0-1",
+              "kind": "project-note",
+              "title": "가상 검증 항목 1",
+              "content": "A private test marker 1"
+            },
+            {
+              "id": "0-2",
+              "kind": "personal-goal",
+              "title": "가상 검증 항목 2",
+              "content": "A private test marker 2"
+            },
+            {
+              "id": "0-3",
+              "kind": "reflection",
+              "title": "가상 검증 항목 3",
+              "content": "A private test marker 3"
+            }
+          ],
+          "expiresAt": "2026-10-26T06:37:07.457Z"
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "B-body-tamper",
+      "account": "B",
+      "request": {
+        "method": "POST",
+        "path": "/api/private-info",
+        "headers": {
+          "Cookie": "[REDACTED]",
+          "Content-Type": "application/json",
+          "Origin": "https://alepht08passkeyportfolio.vercel.app"
+        },
+        "body": {
+          "userId": "11111111-1111-4111-8111-111111111111"
+        }
+      },
+      "response": {
+        "status": 200,
+        "cacheControl": "private, no-store, max-age=0",
+        "body": {
+          "items": [
+            {
+              "id": "1-1",
+              "kind": "project-note",
+              "title": "가상 검증 항목 1",
+              "content": "B private test marker 1"
+            },
+            {
+              "id": "1-2",
+              "kind": "personal-goal",
+              "title": "가상 검증 항목 2",
+              "content": "B private test marker 2"
+            },
+            {
+              "id": "1-3",
+              "kind": "reflection",
+              "title": "가상 검증 항목 3",
+              "content": "B private test marker 3"
+            }
+          ],
+          "expiresAt": "2026-10-26T06:37:07.459Z"
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "used-challenge",
+      "account": "A",
+      "request": {
+        "method": "POST",
+        "path": "/api/auth?action=verify",
+        "headers": {
+          "Cookie": "[REDACTED]",
+          "Content-Type": "application/json",
+          "Origin": "https://alepht08passkeyportfolio.vercel.app"
+        },
+        "body": {
+          "challengeId": "f3b809dc-e1d2-4b36-bcfe-c6f639dee5d7",
+          "credential": {
+            "id": "key-A",
+            "response": {
+              "userHandle": "handleA"
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 409,
+        "cacheControl": "private, no-store, max-age=0",
+        "body": {
+          "error": "CHALLENGE_USED_OR_EXPIRED",
+          "message": "이미 사용했거나 만료된 로그인 요청입니다."
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "invalid-signature",
+      "account": "A",
+      "request": {
+        "method": "POST",
+        "path": "/api/auth?action=verify",
+        "headers": {
+          "Cookie": "[REDACTED]",
+          "Content-Type": "application/json",
+          "Origin": "https://alepht08passkeyportfolio.vercel.app"
+        },
+        "body": {
+          "challengeId": "4065f7dd-471b-4ee4-997e-7e28c6800122",
+          "credential": {
+            "id": "key-A",
+            "invalid": true,
+            "response": {}
+          }
+        }
+      },
+      "response": {
+        "status": 401,
+        "cacheControl": "private, no-store, max-age=0",
+        "body": {
+          "error": "AUTHENTICATION_FAILED",
+          "message": "패스키 서명 확인에 실패했습니다."
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "deleted-key",
+      "account": "A",
+      "request": {
+        "method": "POST",
+        "path": "/api/auth?action=verify",
+        "headers": {
+          "Cookie": "[REDACTED]",
+          "Content-Type": "application/json",
+          "Origin": "https://alepht08passkeyportfolio.vercel.app"
+        },
+        "body": {
+          "challengeId": "14172296-67a8-4c4b-b42e-bcdbf7c81dff",
+          "credential": {
+            "id": "key-A",
+            "response": {}
+          }
+        }
+      },
+      "response": {
+        "status": 401,
+        "cacheControl": "private, no-store, max-age=0",
+        "body": {
+          "error": "AUTHENTICATION_FAILED",
+          "message": "등록한 패스키를 확인해 주세요."
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "old-cookie-after-logout",
+      "account": "B",
+      "request": {
+        "method": "GET",
+        "path": "/api/private-info",
+        "headers": {
+          "Cookie": "[REDACTED]"
+        }
+      },
+      "response": {
+        "status": 401,
+        "cacheControl": "private, no-store, max-age=0",
+        "body": {
+          "error": "AUTH_REQUIRED",
+          "message": "로그인 시간이 끝났습니다. 다시 로그인해 주세요."
+        }
+      },
+      "passed": true
+    }
+  ]
+}

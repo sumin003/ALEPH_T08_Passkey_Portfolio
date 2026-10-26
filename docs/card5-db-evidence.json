@@ -1,0 +1,28 @@
+{
+  "mode": "REAL_DATABASE_TRANSACTION_ROLLBACK",
+  "verifiedDate": "2026-10-26",
+  "project": "gywwtgecjkfmgnwkbmzl",
+  "two_synthetic_accounts": true,
+  "three_different_records_each": true,
+  "A_owner_scope": true,
+  "B_owner_scope": true,
+  "used_challenge_rejected": true,
+  "cross_owner_key_delete_rejected": true,
+  "deleted_key_absent": true,
+  "revoked_cookie_hash_rejected": true,
+  "all_changes_rolled_back": true,
+  "crypto_verified": false,
+  "real_device_test": false,
+  "tablePermissions": {
+    "tables": 6,
+    "rls": true,
+    "anon_select": false,
+    "authenticated_select": false,
+    "service_role_select": true
+  },
+  "limitations": [
+    "SQL checks use synthetic public key bytes and call DB RPCs directly after simulated crypto verification.",
+    "No production HTTP or native passkey interaction is performed by this SQL.",
+    "No existing user content or passkeys are modified."
+  ]
+}

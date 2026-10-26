@@ -93,16 +93,22 @@ export function createAuthenticationHandler({ database = createDatabase, library
         } catch (error) { return failure(error); }
     };
 }
-export function createPrivateInfoHandler({ database = createDatabase } = {}) {
+export function createPrivateInfoHandler({ database = createDatabase, configuration = config } = {}) {
     return async request => {
         try {
             if (!readToken(request)) return json({ error: 'AUTH_REQUIRED', message: '비공개 정보는 패스키 로그인 후 확인할 수 있습니다.' }, 401);
             const db = database(); const session = await readSession(request, db);
             if (!session) return json({ error: 'AUTH_REQUIRED', message: '로그인 시간이 끝났습니다. 다시 로그인해 주세요.' }, 401);
-            if (!['GET', 'HEAD'].includes(request.method)) return json({ error: 'METHOD_NOT_ALLOWED' }, 405, { Allow: 'GET, HEAD' });
+            if (!['GET', 'HEAD', 'POST'].includes(request.method)) return json({ error: 'METHOD_NOT_ALLOWED' }, 405, { Allow: 'GET, HEAD, POST' });
+            if (request.method === 'POST') {
+                if (request.headers.get('origin') !== configuration().origin) return json({ error: 'ORIGIN_DENIED' }, 403);
+                // POST is a read-only query. A client-supplied owner is never authoritative.
+                // Parse with the shared size/type limits, then discard all client selectors.
+                await bodyOf(request);
+            }
             const params = new URL(request.url).searchParams;
             for (const name of ['userId', 'user_id', 'owner_id']) {
-                if (params.has(name) && params.get(name) !== session.user_id) return json({ error: 'FORBIDDEN' }, 403);
+                if (params.getAll(name).some(value => value !== session.user_id)) return json({ error: 'FORBIDDEN' }, 403);
             }
             const items = await db.request(`t08_private_items?user_id=eq.${session.user_id}&select=id,kind,title,content&order=created_at.asc,id.asc`);
             const result = json({ items, expiresAt: session.expires_at });
