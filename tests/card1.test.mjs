@@ -15,8 +15,8 @@ test("server draft contains the three agreed headings with empty bodies", () => 
 
 test("private drafts and server files are absent from public output", async () => {
     const names = await readdir(new URL("../dist/", import.meta.url));
-    assert.ok(names.every(name => ["index.html", "style.css", "script.js", "passkeys.js", "images"].includes(name)));
-    for (const name of ["index.html", "style.css", "script.js", "passkeys.js"]) {
+    assert.ok(names.every(name => ["index.html", "style.css", "script.js", "passkeys.js", "private-access.js", "images"].includes(name)));
+    for (const name of ["index.html", "style.css", "script.js", "passkeys.js", "private-access.js"]) {
         const source = await readFile(new URL(`../dist/${name}`, import.meta.url), "utf8");
         for (const item of privateItems) {
             assert.ok(!source.includes(item.title), `${name} must not contain ${item.id}`);

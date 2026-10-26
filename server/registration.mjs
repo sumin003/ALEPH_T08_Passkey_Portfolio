@@ -101,6 +101,7 @@ export function createDatabase() {
         return response.status === 204 ? null : response.json();
     }
     return {
+        request: query,
         findEnrollment: hash => query(`t08_users?enrollment_token_hash=eq.${hash}&enrollment_expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=id&limit=1`).then(rows => rows[0] || null),
         list: user => query(`t08_passkeys?user_id=eq.${user}&select=name,created_at,storage_label,device_type,backed_up&order=created_at.asc`),
         create: row => query("t08_challenges", "POST", row),
@@ -133,9 +134,11 @@ export function createRegistrationHandler({ database = createDatabase, library =
             const action = url.searchParams.get("action");
             const token = readCookie(request);
             if (request.method === "GET" && action === "list") {
-                if (!token) return json({ error: "REGISTRATION_SESSION_REQUIRED" }, 401);
+                const { readSession, readToken } = await import("./authentication.mjs");
+                if (!token && !readToken(request)) return json({ error: "REGISTRATION_SESSION_REQUIRED" }, 401);
                 const db = database();
-                const user = await db.findEnrollment(sha(token));
+                const session = readToken(request) ? await readSession(request, db) : null;
+                const user = session ? { id: session.user_id } : token ? await db.findEnrollment(sha(token)) : null;
                 if (!user) return json({ error: "REGISTRATION_SESSION_REQUIRED" }, 401);
                 return json({ passkeys: await db.list(user.id) });
             }
@@ -207,3 +210,5 @@ export function createRegistrationHandler({ database = createDatabase, library =
         }
     };
 }
+
+export { RequestError, json, bodyOf, sha };

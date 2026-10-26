@@ -117,5 +117,9 @@
             busy = false; button.disabled = registered;
         }
     });
+    window.addEventListener("t08-auth-state", event => {
+        if (event.detail.authenticated) refreshList();
+        else { list.replaceChildren(); panel.hidden = true; button.disabled = false; }
+    });
     refreshList();
 })();

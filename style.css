@@ -1147,3 +1147,12 @@ section.experience-section {
 .passkey-list li { display: flex; flex-direction: column; gap: 4px; padding: 16px 0; border-top: 1px solid var(--info-border); overflow-wrap: anywhere; }
 .passkey-list small { color: var(--info-text); }
 @media (max-width: 760px) { .passkey-fields { grid-template-columns: 1fr; } }
+
+/* 패스키 로그인과 비공개 자료 */
+[hidden] { display: none !important; }
+.private-actions { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+.passkey-button.secondary { color: var(--blue); background: white; }
+.private-content { position: relative; z-index: 1; margin-top: 28px; }
+.private-content article { padding: 22px 0; border-top: 1px solid var(--info-border); }
+.private-content h4 { margin: 0 0 10px; color: var(--info-heading); font-size: 19px; }
+.private-content p { white-space: pre-wrap; overflow-wrap: anywhere; }

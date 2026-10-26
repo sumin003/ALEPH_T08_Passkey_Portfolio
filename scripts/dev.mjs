@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import privateInfo from "../api/private-info.js";
 import passkeys from "../api/passkeys.js";
+import auth from "../api/auth.js";
 
 const root = path.resolve(fileURLToPath(new URL("../dist/", import.meta.url)));
 const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".png": "image/png" };
@@ -13,8 +14,8 @@ export function createDevServer() {
     return createServer(async (req, res) => {
         try {
             const url = new URL(req.url, "http://localhost");
-            if (["/api/private-info", "/api/passkeys"].includes(url.pathname)) {
-                const handler = url.pathname === "/api/passkeys" ? passkeys : privateInfo;
+            if (["/api/private-info", "/api/passkeys", "/api/auth"].includes(url.pathname)) {
+                const handler = url.pathname === "/api/auth" ? auth : url.pathname === "/api/passkeys" ? passkeys : privateInfo;
                 const body = req.method === "GET" || req.method === "HEAD" ? undefined : req;
                 const response = await handler.fetch(new Request(url, {
                     method: req.method,
