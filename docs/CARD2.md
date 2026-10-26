@@ -1,5 +1,7 @@
 # T08 카드 2 — 패스키 등록
 
+> 카드 2 당시의 기록입니다. 현재 추가 등록·삭제는 CARD4.md를 참고하세요.
+
 ## 반영 위치
 
 - Supabase ALEPH_Task(gywwtgecjkfmgnwkbmzl)에 t08_users, t08_challenges, t08_passkeys와 t08_finish_registration 함수를 생성했다.

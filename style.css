@@ -1156,3 +1156,7 @@ section.experience-section {
 .private-content article { padding: 22px 0; border-top: 1px solid var(--info-border); }
 .private-content h4 { margin: 0 0 10px; color: var(--info-heading); font-size: 19px; }
 .private-content p { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.passkey-delete { align-self: flex-start; padding: 7px 16px; margin-top: 8px; border: 1px solid #b8c6d9; border-radius: 999px; background: white; color: #394574; font-size: 12px; }
+.passkey-delete:disabled { opacity: .5; cursor: not-allowed; }
+.passkey-delete:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }

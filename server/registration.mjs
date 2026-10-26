@@ -103,7 +103,7 @@ export function createDatabase() {
     return {
         request: query,
         findEnrollment: hash => query(`t08_users?enrollment_token_hash=eq.${hash}&enrollment_expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=id&limit=1`).then(rows => rows[0] || null),
-        list: user => query(`t08_passkeys?user_id=eq.${user}&select=name,created_at,storage_label,device_type,backed_up&order=created_at.asc`),
+        list: user => query(`t08_passkeys?user_id=eq.${user}&select=credential_id,name,created_at,storage_label,device_type,backed_up&order=created_at.asc`),
         create: row => query("t08_challenges", "POST", row),
         findChallenge: (id, hash) => query(`t08_challenges?id=eq.${id}&binding_hash=eq.${hash}&select=*&limit=1`).then(rows => rows[0] || null),
         cancel: (id, hash) => query(`t08_challenges?id=eq.${id}&binding_hash=eq.${hash}&used_at=is.null`, "DELETE"),
@@ -140,20 +140,46 @@ export function createRegistrationHandler({ database = createDatabase, library =
                 const session = readToken(request) ? await readSession(request, db) : null;
                 const user = session ? { id: session.user_id } : token ? await db.findEnrollment(sha(token)) : null;
                 if (!user) return json({ error: "REGISTRATION_SESSION_REQUIRED" }, 401);
-                return json({ passkeys: await db.list(user.id) });
+                return json({ passkeys: await db.list(user.id), authenticated: !!session });
             }
             if (request.method !== "POST") return json({ error: "METHOD_NOT_ALLOWED" }, 405, { Allow: "GET, POST" });
-            if (!["options", "verify", "cancel"].includes(action)) return json({ error: "NOT_FOUND" }, 404);
+            if (!["options", "verify", "cancel", "delete"].includes(action)) return json({ error: "NOT_FOUND" }, 404);
             const data = await bodyOf(request);
             const db = database();
+            if (action === "delete") {
+                const { readSession, readToken } = await import("./authentication.mjs");
+                const session = await readSession(request, db);
+                if (!session) return json({ error: "AUTH_REQUIRED", message: "패스키로 로그인한 뒤 삭제해 주세요." }, 401);
+                if (typeof data.credentialId !== "string" || !/^[A-Za-z0-9_-]{1,2048}$/.test(data.credentialId)) return json({ error: "INVALID_CREDENTIAL" }, 400);
+                const result = await db.request("rpc/t08_remove_passkey", "POST", {
+                    p_session_hash: sha(readToken(request)), p_credential_id: data.credentialId
+                });
+                if (result.error === "LAST_PASSKEY") return json({ error: result.error, message: "마지막 패스키는 삭제할 수 없습니다. 다른 패스키를 먼저 등록해 주세요." }, 409);
+                if (result.error === "AUTH_REQUIRED") return json({ error: result.error, message: "다시 로그인해 주세요." }, 401);
+                if (result.error) return json({ error: "PASSKEY_NOT_FOUND", message: "삭제할 패스키를 찾지 못했습니다." }, 404);
+                const response = json(result);
+                for (const name of ["__Host-t08_session", "__Host-t08_login", "__Host-t08_enrollment"]) {
+                    response.headers.append("Set-Cookie", `${name}=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0`);
+                }
+                return response;
+            }
             if (action === "options") {
                 const name = label(data.name, 60);
                 const storage = label(data.storage, 100);
-                if (token && await db.findEnrollment(sha(token))) {
-                    throw new RequestError(409, "LOGIN_REQUIRED_TO_ADD", "첫 패스키가 등록되어 있습니다. 추가 등록은 로그인 기능 연결 후 이용할 수 있습니다.");
+                const { readSession, readToken } = await import("./authentication.mjs");
+                const session = readToken(request) ? await readSession(request, db) : null;
+                if (!session && token && await db.findEnrollment(sha(token))) {
+                    throw new RequestError(409, "LOGIN_REQUIRED_TO_ADD", "추가 등록은 패스키로 로그인한 뒤 이용할 수 있습니다.");
                 }
-                const userId = randomUUID();
-                const userBytes = Buffer.from(userId.replaceAll("-", ""), "hex");
+                const userId = session ? session.user_id : randomUUID();
+                let userBytes;
+                let existingKeys = [];
+                if (session) {
+                    const users = await db.request(`t08_users?id=eq.${userId}&select=webauthn_user_id&limit=1`);
+                    if (!users[0]) return json({ error: "AUTH_REQUIRED" }, 401);
+                    userBytes = Buffer.from(users[0].webauthn_user_id, "base64url");
+                    existingKeys = await db.request(`t08_passkeys?user_id=eq.${userId}&select=credential_id,transports`);
+                } else userBytes = Buffer.from(userId.replaceAll("-", ""), "hex");
                 const binding = randomBytes(32).toString("base64url");
                 const { generateRegistrationOptions } = await library();
                 const options = await generateRegistrationOptions({
@@ -161,6 +187,7 @@ export function createRegistrationHandler({ database = createDatabase, library =
                     userID: new Uint8Array(userBytes),
                     userName: `portfolio-${userId.slice(-8)}`,
                     attestationType: "none", timeout: 120000,
+                    excludeCredentials: existingKeys.map(key => ({ id: key.credential_id, transports: key.transports })),
                     authenticatorSelection: { residentKey: "required", userVerification: "required" },
                     supportedAlgorithmIDs: [-7, -257]
                 });
@@ -168,7 +195,8 @@ export function createRegistrationHandler({ database = createDatabase, library =
                 await db.create({ id, kind: "registration", challenge: options.challenge,
                     binding_hash: sha(binding), candidate_user_id: userId,
                     webauthn_user_id: options.user.id, passkey_name: name, storage_label: storage,
-                    expires_at: new Date(Date.now() + 5 * 60000).toISOString() });
+                    expires_at: new Date(Date.now() + 5 * 60000).toISOString(),
+                    ...(session ? { existing_user_id: userId, registration_session_hash: sha(readToken(request)) } : {}) });
                 return json({ challengeId: id, options }, 200, { "Set-Cookie": cookie(binding, 300) });
             }
             if (!token || typeof data.challengeId !== "string" || !UUID.test(data.challengeId)) {
@@ -182,6 +210,15 @@ export function createRegistrationHandler({ database = createDatabase, library =
             if (!challenge || challenge.kind !== "registration" || challenge.used_at || Date.parse(challenge.expires_at) <= Date.now()) {
                 throw new RequestError(409, "CHALLENGE_USED_OR_EXPIRED", "이미 사용했거나 만료된 등록 요청입니다.");
             }
+            let registrationSessionHash = null;
+            if (challenge.existing_user_id) {
+                const { readSession, readToken } = await import("./authentication.mjs");
+                const session = await readSession(request, db);
+                registrationSessionHash = readToken(request) ? sha(readToken(request)) : null;
+                if (!session || session.user_id !== challenge.existing_user_id || registrationSessionHash !== challenge.registration_session_hash) {
+                    return json({ error: "AUTH_REQUIRED", message: "추가 등록을 시작한 계정으로 다시 로그인해 주세요." }, 401);
+                }
+            }
             const { verifyRegistrationResponse } = await library();
             let verification;
             try {
@@ -193,11 +230,14 @@ export function createRegistrationHandler({ database = createDatabase, library =
                 throw new RequestError(400, "VERIFICATION_FAILED", "등록 응답 검증에 실패했습니다.");
             }
             const { credential, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
-            await db.finish({ p_challenge_id: challenge.id, p_binding_hash: sha(token),
+            const save = challenge.existing_user_id
+                ? payload => db.request("rpc/t08_finish_additional_registration", "POST", { ...payload, p_session_hash: registrationSessionHash })
+                : db.finish;
+            await save({ p_challenge_id: challenge.id, p_binding_hash: sha(token),
                 p_credential_id: credential.id, p_public_key: Buffer.from(credential.publicKey).toString("base64url"),
                 p_counter: credential.counter, p_transports: credential.transports || [],
                 p_device_type: credentialDeviceType, p_backed_up: credentialBackedUp });
-            return json({ registered: true, passkey: { name: challenge.passkey_name,
+            return json({ registered: true, additional: !!challenge.existing_user_id, passkey: { name: challenge.passkey_name,
                 storage_label: challenge.storage_label }, privateAccessGranted: false },
                 200, { "Set-Cookie": cookie(token, 900) });
         } catch (error) {

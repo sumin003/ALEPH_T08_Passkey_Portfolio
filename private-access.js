@@ -50,7 +50,7 @@
             }
             content.hidden = false; state.textContent = '비공개 · 로그인됨';
             status.textContent = '패스키로 본인 확인을 완료했습니다.';
-            login.hidden = true; logout.hidden = false; registration.hidden = true;
+            login.hidden = true; logout.hidden = false; registration.hidden = false;
             window.dispatchEvent(new CustomEvent('t08-auth-state', { detail: { authenticated: true } }));
             clearTimeout(expiryTimer);
             expiryTimer = setTimeout(() => lock('로그인 시간이 끝났습니다. 다시 로그인해 주세요.'), Math.max(0, Date.parse(data.expiresAt) - Date.now()));
@@ -99,6 +99,15 @@
             status.textContent = '화면은 잠겼지만 서버 로그아웃을 확인하지 못했습니다. 로그아웃을 다시 눌러 주세요.';
             logout.hidden = false;
         } finally { busy = false; logout.disabled = false; }
+    });
+    window.addEventListener('t08-session-expired', () => {
+        lock('로그인 상태를 확인하지 못했습니다. 다시 로그인해 주세요.');
+        window.dispatchEvent(new CustomEvent('t08-auth-state', { detail: { authenticated: false } }));
+    });
+    window.addEventListener('t08-passkey-deleted', () => {
+        lock('패스키를 삭제했습니다. 남은 패스키로 다시 로그인해 주세요.');
+        window.dispatchEvent(new CustomEvent('t08-auth-state', { detail: { authenticated: false } }));
+        channel?.postMessage('logout');
     });
     channel?.addEventListener('message', event => {
         if (event.data === 'logout') { lock('다른 탭에서 로그아웃했습니다.'); window.dispatchEvent(new CustomEvent('t08-auth-state', { detail: { authenticated: false } })); }

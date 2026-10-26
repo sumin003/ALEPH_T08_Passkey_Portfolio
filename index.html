@@ -592,8 +592,8 @@
                 </div>
                 <div id="private-content" class="private-content" hidden></div>
                 <div class="passkey-registration" aria-labelledby="passkey-heading">
-                    <h4 id="passkey-heading">첫 패스키 등록</h4>
-                    <p class="passkey-help">알아보기 쉬운 이름과 사용할 기기·관리자를 적어 주세요.</p>
+                    <h4 id="passkey-heading">패스키 등록·관리</h4>
+                    <p class="passkey-help">이름과 저장 위치는 목록에서 구분하기 위한 표시 정보예요. PIN은 기기의 보안 창에서만 입력하세요.</p>
                     <form id="passkey-form">
                         <div class="passkey-fields">
                             <label for="passkey-name">패스키 이름
@@ -606,9 +606,11 @@
                         <p id="storage-help" class="passkey-help">등록 창에서 실제 선택한 저장 위치와 같게 적어 주세요. 사이트는 저장 위치를 자동으로 알 수 없습니다.</p>
                         <button id="passkey-register" class="passkey-button" type="submit">패스키 등록</button>
                     </form>
+                    <p id="passkey-manage-help" class="passkey-help">추가 등록과 삭제는 패스키로 로그인한 뒤 이용할 수 있습니다.</p>
                     <p id="passkey-status" class="passkey-feedback" role="status" aria-live="polite"></p>
                     <div id="passkey-list-panel" hidden>
                         <h4>등록한 패스키</h4>
+                        <p class="passkey-help">등록된 패스키가 없으면 로그인할 수 없습니다. 마지막 패스키는 삭제할 수 없으니 다른 패스키를 먼저 등록해 주세요.</p>
                         <ul id="passkey-list" class="passkey-list"></ul>
                     </div>
                 </div>
