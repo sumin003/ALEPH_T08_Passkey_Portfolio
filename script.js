@@ -1,3 +1,4 @@
+/* 모바일 메뉴 */
 const menuToggle = document.getElementById("menuToggle");
 const menu = document.getElementById("menu");
 
@@ -37,6 +38,7 @@ if (menuToggle && menu) {
     });
 }
 
+/* 경험 탭 */
 const experienceButtons = Array.from(
     document.querySelectorAll(".exp-btn")
 );
@@ -93,6 +95,7 @@ experienceButtons.forEach((button, index) => {
     });
 });
 
+/* 근거보기 */
 const evidenceToggles = document.querySelectorAll(
     ".evidence-toggle"
 );
@@ -133,16 +136,13 @@ evidenceToggles.forEach((button) => {
         }
 
         if (icon) {
-            icon.textContent = nextOpenState
-                ? "−"
-                : "＋";
+            icon.textContent = nextOpenState ? "−" : "＋";
         }
     });
 });
 
-const motionToggle = document.getElementById(
-    "motionToggle"
-);
+/* 움직임 줄이기 */
+const motionToggle = document.getElementById("motionToggle");
 
 const motionPreference = window.matchMedia(
     "(prefers-reduced-motion: reduce)"
@@ -188,6 +188,7 @@ motionPreference.addEventListener("change", (event) => {
 
 applyMotionPreference();
 
+/* 첫 화면 연락처 */
 const contactButtons = document.querySelectorAll(
     ".contact-btn"
 );
