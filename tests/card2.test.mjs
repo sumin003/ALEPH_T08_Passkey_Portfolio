@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
 import { createRegistrationHandler, createDatabase, config } from "../server/registration.mjs";
 
 const origin = "https://alepht08passkeyportfolio.vercel.app";
@@ -149,5 +151,33 @@ test("origin configuration accepts a trailing slash but rejects paths and non-HT
         }
     } finally {
         if (previous === undefined) delete process.env.T08_ORIGIN; else process.env.T08_ORIGIN = previous;
+    }
+});
+
+test("origin rejection reveals only the two public origins", async () => {
+    const f = fixture();
+    const response = await f.handle(new Request(`${origin}/api/passkeys?action=options`, {
+        method: "POST", headers: { Origin: "https://preview.example", Cookie: "session=TEST_DO_NOT_RETURN", "Content-Type": "application/json" }, body: "{}"
+    }));
+    assert.equal(response.status, 403);
+    const data = await response.json();
+    assert.equal(data.expectedOrigin, origin);
+    assert.equal(data.receivedOrigin, "https://preview.example");
+    assert.ok(!JSON.stringify(data).includes("TEST_DO_NOT_RETURN"));
+});
+
+test("Vercel previews redirect to the passkey domain without looping on production", () => {
+    const source = readFileSync(new URL("../passkeys.js", import.meta.url), "utf8");
+    for (const [hostname, expected] of [
+        ["alepht08passkeyportfolio-git-main-sumin-9897.vercel.app", origin + "/#private-info"],
+        ["alepht08passkeyportfolio.vercel.app", null],
+        ["localhost", null]
+    ]) {
+        let redirected = null;
+        runInNewContext(source, {
+            window: { location: { hostname, origin: `https://${hostname}`, replace: url => { redirected = url; } } },
+            document: { getElementById: () => null }
+        });
+        assert.equal(redirected, expected);
     }
 });

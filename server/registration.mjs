@@ -122,7 +122,12 @@ export function createRegistrationHandler({ database = createDatabase, library =
         try {
             const { origin, rpID } = configuration();
             if (request.method !== "GET" && request.headers.get("origin") !== origin) {
-                throw new RequestError(403, "ORIGIN_DENIED", "이 사이트에서 등록을 진행해 주세요.");
+                // Origins are public URLs; never include cookies, keys or authorization headers.
+                return json({ error: "ORIGIN_DENIED",
+                    message: "등록 주소가 일치하지 않습니다. 정식 사이트에서 다시 시도해 주세요.",
+                    expectedOrigin: origin,
+                    receivedOrigin: request.headers.get("origin") || null
+                }, 403);
             }
             const url = new URL(request.url);
             const action = url.searchParams.get("action");

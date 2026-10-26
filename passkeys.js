@@ -1,4 +1,10 @@
 (() => {
+    // Passkeys are bound to one RP domain. Keep Vercel preview visits on that domain.
+    const registrationOrigin = "https://alepht08passkeyportfolio.vercel.app";
+    if (window.location.hostname.endsWith(".vercel.app") && window.location.origin !== registrationOrigin) {
+        window.location.replace(registrationOrigin + "/#private-info");
+        return;
+    }
     const form = document.getElementById("passkey-form");
     if (!form) return;
     const button = document.getElementById("passkey-register");
