@@ -65,7 +65,7 @@ async function bodyOf(request) {
 
 function label(value, limit) {
     if (typeof value !== "string" || !value.trim() || value.trim().length > limit || /[\x00-\x1f\x7f]/.test(value)) {
-        throw new RequestError(400, "INVALID_LABEL", "계정 이름, 패스키 이름과 저장 위치를 확인해 주세요.");
+        throw new RequestError(400, "INVALID_LABEL", "패스키 이름과 저장 위치를 확인해 주세요.");
     }
     return value.trim();
 }
@@ -140,24 +140,12 @@ export function createRegistrationHandler({ database = createDatabase, library =
                 const session = readToken(request) ? await readSession(request, db) : null;
                 const user = session ? { id: session.user_id } : token ? await db.findEnrollment(sha(token)) : null;
                 if (!user) return json({ error: "REGISTRATION_SESSION_REQUIRED" }, 401);
-                const rows = session ? await db.request(`t08_users?id=eq.${user.id}&select=account_name,webauthn_user_id&limit=1`) : [];
-                const account = rows[0] ? { name: rows[0].account_name || `portfolio-${user.id.slice(-8)}`, userId: rows[0].webauthn_user_id, rpId: rpID } : null;
-                return json({ passkeys: await db.list(user.id), authenticated: !!session, account });
+                return json({ passkeys: await db.list(user.id), authenticated: !!session });
             }
             if (request.method !== "POST") return json({ error: "METHOD_NOT_ALLOWED" }, 405, { Allow: "GET, POST" });
-            if (!["options", "verify", "cancel", "delete", "rename"].includes(action)) return json({ error: "NOT_FOUND" }, 404);
+            if (!["options", "verify", "cancel", "delete"].includes(action)) return json({ error: "NOT_FOUND" }, 404);
             const data = await bodyOf(request);
             const db = database();
-            if (action === "rename") {
-                const { readSession, readToken } = await import("./authentication.mjs");
-                if (!await readSession(request, db)) return json({ error: "AUTH_REQUIRED", message: "로그인 후 계정 이름을 저장해 주세요." }, 401);
-                const accountName = label(data.accountName, 60);
-                const result = await db.request("rpc/t08_set_account_name", "POST", {
-                    p_session_hash: sha(readToken(request)), p_account_name: accountName
-                });
-                if (result.error) return json({ error: result.error, message: "다시 로그인해 주세요." }, 401);
-                return json({ account: { name: result.name, userId: result.userId, rpId: rpID } });
-            }
             if (action === "delete") {
                 const { readSession, readToken } = await import("./authentication.mjs");
                 const session = await readSession(request, db);
@@ -185,24 +173,19 @@ export function createRegistrationHandler({ database = createDatabase, library =
                 }
                 const userId = session ? session.user_id : randomUUID();
                 let userBytes;
-                let accountName = `portfolio-${userId.slice(-8)}`;
                 let existingKeys = [];
                 if (session) {
-                    const users = await db.request(`t08_users?id=eq.${userId}&select=webauthn_user_id,account_name&limit=1`);
+                    const users = await db.request(`t08_users?id=eq.${userId}&select=webauthn_user_id&limit=1`);
                     if (!users[0]) return json({ error: "AUTH_REQUIRED" }, 401);
                     userBytes = Buffer.from(users[0].webauthn_user_id, "base64url");
-                    accountName = users[0].account_name || accountName;
                     existingKeys = await db.request(`t08_passkeys?user_id=eq.${userId}&select=credential_id,transports`);
-                } else {
-                    userBytes = Buffer.from(userId.replaceAll("-", ""), "hex");
-                    if (data.accountName !== undefined) accountName = label(data.accountName, 60);
-                }
+                } else userBytes = Buffer.from(userId.replaceAll("-", ""), "hex");
                 const binding = randomBytes(32).toString("base64url");
                 const { generateRegistrationOptions } = await library();
                 const options = await generateRegistrationOptions({
                     rpName: "우수민 Portfolio", rpID,
                     userID: new Uint8Array(userBytes),
-                    userName: accountName, userDisplayName: accountName,
+                    userName: name, userDisplayName: name,
                     attestationType: "none", timeout: 120000,
                     excludeCredentials: existingKeys.map(key => ({ id: key.credential_id, transports: key.transports })),
                     authenticatorSelection: { residentKey: "required", userVerification: "required" },
@@ -211,7 +194,7 @@ export function createRegistrationHandler({ database = createDatabase, library =
                 const id = randomUUID();
                 await db.create({ id, kind: "registration", challenge: options.challenge,
                     binding_hash: sha(binding), candidate_user_id: userId,
-                    webauthn_user_id: options.user.id, account_name: accountName, passkey_name: name, storage_label: storage,
+                    webauthn_user_id: options.user.id, passkey_name: name, storage_label: storage,
                     expires_at: new Date(Date.now() + 5 * 60000).toISOString(),
                     ...(session ? { existing_user_id: userId, registration_session_hash: sha(readToken(request)) } : {}) });
                 return json({ challengeId: id, options }, 200, { "Set-Cookie": cookie(binding, 300) });

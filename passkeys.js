@@ -11,51 +11,6 @@
     const status = document.getElementById("passkey-status");
     const panel = document.getElementById("passkey-list-panel");
     const list = document.getElementById("passkey-list");
-    const accountForm = document.getElementById("account-name-form");
-    const accountInput = document.getElementById("account-name");
-    const accountSave = document.getElementById("account-name-save");
-    const accountStatus = document.getElementById("account-name-status");
-    let accountVersion = 0;
-    function clearAccount() {
-        accountVersion++;
-        accountInput.value = "";
-        accountSave.hidden = true;
-        accountSave.disabled = false;
-        accountStatus.textContent = "";
-    }
-    async function signalAccount(account) {
-        if (typeof window.PublicKeyCredential?.signalCurrentUserDetails !== "function") return false;
-        try {
-            await window.PublicKeyCredential.signalCurrentUserDetails({
-                rpId: account.rpId, userId: account.userId, name: account.name, displayName: account.name
-            });
-            return true;
-        } catch { return false; }
-    }
-    accountForm.addEventListener("submit", async event => {
-        event.preventDefault();
-        if (!authenticated) {
-            accountStatus.textContent = "계정 이름을 입력한 뒤 아래 패스키 등록 버튼을 눌러 주세요.";
-            return;
-        }
-        if (accountSave.disabled || !accountInput.reportValidity()) return;
-        const version = ++accountVersion;
-        accountSave.disabled = true;
-        try {
-            const data = await api("rename", { accountName: accountInput.value });
-            if (!authenticated || version !== accountVersion) return;
-            accountInput.value = data.account.name;
-            const signalled = await signalAccount(data.account);
-            if (!authenticated || version !== accountVersion) return;
-            accountStatus.textContent = signalled
-                ? "계정 이름을 저장하고 인증 기기에 이름 갱신을 요청했습니다. 인증 창 반영은 기기에 따라 다를 수 있습니다."
-                : "계정 이름을 저장했습니다. 현재 브라우저나 인증 기기에서는 기존 패스키의 이름이 그대로 표시될 수 있습니다.";
-        } catch (error) {
-            if (version !== accountVersion) return;
-            accountStatus.textContent = error.message;
-            if (error.status === 401) window.dispatchEvent(new CustomEvent("t08-session-expired"));
-        } finally { if (version === accountVersion) accountSave.disabled = false; }
-    });
     let busy = false;
     let authenticated = false;
     let listVersion = 0;
@@ -90,14 +45,6 @@
             const data = await api("list");
             if (version !== listVersion) return false;
             authenticated = data.authenticated === true;
-            if (authenticated && data.account) {
-                accountVersion++;
-                accountSave.disabled = false;
-                accountSave.hidden = false;
-                accountInput.value = data.account.name;
-                accountStatus.textContent = `현재 계정: ${data.account.name} · 이름을 변경한 뒤 저장해 주세요.`;
-                void signalAccount(data.account);
-            } else accountSave.hidden = true;
             knownCredentialIds = new Set((data.passkeys || []).map(item => item.credential_id));
             list.replaceChildren();
             for (const item of data.passkeys || []) {
@@ -142,7 +89,6 @@
         } catch (error) {
             if (version !== listVersion) return false;
             authenticated = false;
-            clearAccount();
             panel.hidden = true;
             if (error.status !== 401) status.textContent = "패스키 목록을 불러오지 못했습니다.";
             return false;
@@ -152,7 +98,6 @@
     form.addEventListener("submit", async event => {
         event.preventDefault();
         if (busy) return;
-        if (!authenticated && !accountInput.reportValidity()) return;
         if (!window.isSecureContext || !window.PublicKeyCredential || !navigator.credentials?.create) {
             status.textContent = "HTTPS 주소에서 패스키를 지원하는 브라우저와 기기로 이용해 주세요.";
             return;
@@ -162,7 +107,6 @@
         try {
             status.textContent = "패스키 등록을 준비하고 있습니다.";
             const data = await api("options", {
-                accountName: accountInput.value,
                 name: document.getElementById("passkey-name").value,
                 storage: document.getElementById("passkey-storage").value
             });
@@ -216,7 +160,7 @@
     window.addEventListener("t08-auth-state", event => {
         authenticated = event.detail.authenticated;
         if (authenticated) refreshList();
-        else { clearAccount(); listVersion++; knownCredentialIds.clear(); list.replaceChildren(); panel.hidden = true; button.disabled = false; button.textContent = "패스키 등록"; help.textContent = "추가 등록과 삭제는 패스키로 로그인한 뒤 이용할 수 있습니다."; }
+        else { listVersion++; knownCredentialIds.clear(); list.replaceChildren(); panel.hidden = true; button.disabled = false; button.textContent = "패스키 등록"; help.textContent = "추가 등록과 삭제는 패스키로 로그인한 뒤 이용할 수 있습니다."; }
     });
     refreshList();
 })();

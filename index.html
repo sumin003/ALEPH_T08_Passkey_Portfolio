@@ -593,21 +593,11 @@
                 <div id="private-content" class="private-content" hidden></div>
                 <div class="passkey-registration" aria-labelledby="passkey-heading">
                     <h4 id="passkey-heading">패스키 등록·관리</h4>
-                    <p class="passkey-help">이름과 저장 위치는 목록에서 구분하기 위한 표시 정보예요. PIN은 기기의 보안 창에서만 입력하세요.</p>
-                    <form id="account-name-form">
-                            <div class="passkey-fields">
-                                <label for="account-name">계정 이름
-                                    <input id="account-name" type="text" maxlength="60" required autocomplete="nickname" placeholder="예: 수민 A 또는 테스트 B">
-                                </label>
-                            </div>
-                            <button id="account-name-save" class="passkey-button secondary" type="submit" hidden>계정 이름 저장</button>
-                            <p class="passkey-help">처음 등록할 때 사용할 계정 이름입니다. 로그인 후에도 변경할 수 있습니다. 패스키 별명과는 별도로 저장됩니다.</p>
-                            <p id="account-name-status" class="passkey-feedback" role="status" aria-live="polite"></p>
-                        </form>
-                        <form id="passkey-form">
+                    <p class="passkey-help">패스키 이름은 등록 목록과 새 패스키의 인증 창에 사용할 이름이에요. PIN은 기기의 보안 창에서만 입력하세요.</p>
+                    <form id="passkey-form">
                         <div class="passkey-fields">
                             <label for="passkey-name">패스키 이름
-                                <input id="passkey-name" name="name" maxlength="60" placeholder="예: 내 노트북" required autocomplete="off">
+                                <input id="passkey-name" name="name" maxlength="60" placeholder="예: 수민 A · 내 노트북" required autocomplete="off">
                             </label>
                             <label for="passkey-storage">저장할 기기·관리자
                                 <input id="passkey-storage" name="storage" maxlength="100" placeholder="예: Google 비밀번호 관리자" required autocomplete="off" aria-describedby="storage-help">
