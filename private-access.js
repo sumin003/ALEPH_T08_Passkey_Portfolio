@@ -12,7 +12,8 @@
         version++; clearTimeout(expiryTimer);
         content.replaceChildren(); content.hidden = true;
         state.textContent = '비공개 · 잠김'; status.textContent = message;
-        login.hidden = false; logout.hidden = true; registration.hidden = false;
+        login.hidden = false; logout.hidden = true; registration.hidden = true;
+        window.dispatchEvent(new CustomEvent('t08-auth-state', { detail: { authenticated: false } }));
     }
     async function request(action, body) {
         const response = await fetch(`/api/auth?action=${action}`, {

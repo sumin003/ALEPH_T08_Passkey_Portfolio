@@ -44,7 +44,8 @@ function fixture() {
             } };
         }
     };
-    const handle = createRegistrationHandler({ database: () => db, library: async () => lib,
+    // Historical first-enrollment protocol tests; production keeps enrollment closed.
+    const handle = createRegistrationHandler({ allowInitialRegistration: true, database: () => db, library: async () => lib,
         configuration: () => ({ origin, rpID: new URL(origin).hostname }) });
     async function request(action, body, cookie) {
         const headers = { Origin: origin };

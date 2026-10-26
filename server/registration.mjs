@@ -117,8 +117,10 @@ async function webauthn() {
     }
 }
 
+// Initial enrollment is closed by default. The opt-in is for isolated historical tests only;
+// API routes never enable it, and request bodies cannot override it.
 // Dependency injection is only available to server-side tests, never HTTP request input.
-export function createRegistrationHandler({ database = createDatabase, library = webauthn, configuration = config } = {}) {
+export function createRegistrationHandler({ database = createDatabase, library = webauthn, configuration = config, allowInitialRegistration = false } = {}) {
     return async function handle(request) {
         try {
             const { origin, rpID } = configuration();
@@ -135,15 +137,19 @@ export function createRegistrationHandler({ database = createDatabase, library =
             const token = readCookie(request);
             if (request.method === "GET" && action === "list") {
                 const { readSession, readToken } = await import("./authentication.mjs");
-                if (!token && !readToken(request)) return json({ error: "REGISTRATION_SESSION_REQUIRED" }, 401);
+                if ((!allowInitialRegistration || !token) && !readToken(request)) return json({ error: "REGISTRATION_SESSION_REQUIRED" }, 401);
                 const db = database();
                 const session = readToken(request) ? await readSession(request, db) : null;
-                const user = session ? { id: session.user_id } : token ? await db.findEnrollment(sha(token)) : null;
+                const user = session ? { id: session.user_id } : allowInitialRegistration && token ? await db.findEnrollment(sha(token)) : null;
                 if (!user) return json({ error: "REGISTRATION_SESSION_REQUIRED" }, 401);
                 return json({ passkeys: await db.list(user.id), authenticated: !!session });
             }
             if (request.method !== "POST") return json({ error: "METHOD_NOT_ALLOWED" }, 405, { Allow: "GET, POST" });
             if (!["options", "verify", "cancel", "delete"].includes(action)) return json({ error: "NOT_FOUND" }, 404);
+            if (!allowInitialRegistration && ["options", "verify"].includes(action)) {
+                const { readToken } = await import("./authentication.mjs");
+                if (!readToken(request)) return json({ error: "AUTH_REQUIRED", message: "신규 등록은 닫혀 있습니다. 기존 패스키로 인증한 뒤 추가 등록해 주세요." }, 401);
+            }
             const data = await bodyOf(request);
             const db = database();
             if (action === "delete") {
@@ -168,6 +174,9 @@ export function createRegistrationHandler({ database = createDatabase, library =
                 const storage = label(data.storage, 100);
                 const { readSession, readToken } = await import("./authentication.mjs");
                 const session = readToken(request) ? await readSession(request, db) : null;
+                if (!session && !allowInitialRegistration) {
+                    return json({ error: "AUTH_REQUIRED", message: "기존 패스키로 인증한 뒤 추가 등록해 주세요." }, 401);
+                }
                 if (!session && token && await db.findEnrollment(sha(token))) {
                     throw new RequestError(409, "LOGIN_REQUIRED_TO_ADD", "추가 등록은 패스키로 로그인한 뒤 이용할 수 있습니다.");
                 }
@@ -209,6 +218,9 @@ export function createRegistrationHandler({ database = createDatabase, library =
             const challenge = await db.findChallenge(data.challengeId, sha(token));
             if (!challenge || challenge.kind !== "registration" || challenge.used_at || Date.parse(challenge.expires_at) <= Date.now()) {
                 throw new RequestError(409, "CHALLENGE_USED_OR_EXPIRED", "이미 사용했거나 만료된 등록 요청입니다.");
+            }
+            if (!allowInitialRegistration && !challenge.existing_user_id) {
+                return json({ error: "INITIAL_REGISTRATION_CLOSED", message: "최초 등록은 종료되었습니다." }, 403);
             }
             let registrationSessionHash = null;
             if (challenge.existing_user_id) {

@@ -98,6 +98,10 @@
     form.addEventListener("submit", async event => {
         event.preventDefault();
         if (busy) return;
+        if (!authenticated) {
+            status.textContent = "기존 패스키로 인증한 뒤 추가 등록해 주세요.";
+            return;
+        }
         if (!window.isSecureContext || !window.PublicKeyCredential || !navigator.credentials?.create) {
             status.textContent = "HTTPS 주소에서 패스키를 지원하는 브라우저와 기기로 이용해 주세요.";
             return;
