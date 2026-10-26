@@ -624,7 +624,7 @@ section.experience-section {
 }
 
 section.content#goal {
-    padding-bottom: 300px;
+    padding-bottom: 90px;
 }
 
 .goal-redesign {
@@ -842,7 +842,7 @@ section.content#goal {
     }
 
     section.content#goal {
-        padding-bottom: 180px;
+        padding-bottom: 65px;
     }
 
     .goal-blue-panel {
@@ -922,4 +922,54 @@ section.content#goal {
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
+}
+
+/* Public information and the future private space */
+.info-description {
+    margin: -18px 0 30px;
+    color: #595650;
+    font-size: 14px;
+}
+
+.public-info-cards .card {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.public-info-cards a {
+    color: #394574;
+    text-underline-offset: 4px;
+}
+
+.public-info-cards a:focus-visible {
+    outline: 3px solid var(--blue);
+    outline-offset: 4px;
+}
+
+.private-info-section {
+    border-top: 1px solid #e3e0da;
+}
+
+.private-info-placeholder {
+    padding: clamp(24px, 5vw, 45px);
+    border: 1px dashed var(--blue);
+    border-radius: 12px;
+    background: var(--cream);
+}
+
+.info-label {
+    color: #394574;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.private-info-placeholder h3 {
+    margin: 14px 0 10px;
+    font-size: clamp(21px, 4vw, 28px);
+}
+
+.private-info-placeholder p {
+    margin: 0;
+    color: #595650;
+    font-size: 14px;
 }
