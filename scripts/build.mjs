@@ -10,7 +10,7 @@ await mkdir(output, { recursive: true });
 
 // Only these public files are deployed as static assets.
 // Never copy server/, tests/, docs/, configuration or environment files.
-for (const name of ["index.html", "style.css", "script.js"]) {
+for (const name of ["index.html", "style.css", "script.js", "passkeys.js"]) {
     await cp(path.join(root, name), path.join(output, name));
 }
 if (existsSync(path.join(root, "images"))) {

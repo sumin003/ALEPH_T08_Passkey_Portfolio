@@ -586,6 +586,27 @@
                 <span class="info-label" id="private-state">비공개 · 잠김</span>
                 <h3>나만 볼 수 있는 공간</h3>
                 <p id="private-status" role="status" aria-live="polite">패스키 로그인 후 비공개 정보를 확인할 수 있습니다.</p>
+                <div class="passkey-registration" aria-labelledby="passkey-heading">
+                    <h4 id="passkey-heading">첫 패스키 등록</h4>
+                    <p class="passkey-help">알아보기 쉬운 이름과 사용할 기기·관리자를 적어 주세요.</p>
+                    <form id="passkey-form">
+                        <div class="passkey-fields">
+                            <label for="passkey-name">패스키 이름
+                                <input id="passkey-name" name="name" maxlength="60" placeholder="예: 내 노트북" required autocomplete="off">
+                            </label>
+                            <label for="passkey-storage">저장할 기기·관리자
+                                <input id="passkey-storage" name="storage" maxlength="100" placeholder="예: Google 비밀번호 관리자" required autocomplete="off" aria-describedby="storage-help">
+                            </label>
+                        </div>
+                        <p id="storage-help" class="passkey-help">등록 창에서 실제 선택한 저장 위치와 같게 적어 주세요. 사이트는 저장 위치를 자동으로 알 수 없습니다.</p>
+                        <button id="passkey-register" class="passkey-button" type="submit">패스키 등록</button>
+                    </form>
+                    <p id="passkey-status" class="passkey-feedback" role="status" aria-live="polite"></p>
+                    <div id="passkey-list-panel" hidden>
+                        <h4>등록한 패스키</h4>
+                        <ul id="passkey-list" class="passkey-list"></ul>
+                    </div>
+                </div>
                 <noscript><p>비공개 기능을 사용하려면 JavaScript를 켜 주세요.</p></noscript>
             </div>
         </section>
@@ -594,5 +615,6 @@
     <footer class="minimal-footer">
         나를 소개하는 한 페이지
     </footer>
+    <script src="passkeys.js" defer></script>
 </body>
 </html>
