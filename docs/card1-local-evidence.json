@@ -1,0 +1,76 @@
+{
+  "environment": "local Node HTTP server; NOT production Vercel evidence",
+  "createdAt": "2026-10-26T01:34:13.664Z",
+  "records": [
+    {
+      "request": {
+        "method": "GET",
+        "path": "/",
+        "headers": {}
+      },
+      "label": "public page",
+      "status": 200,
+      "cacheControl": null,
+      "responseBody": "[HTML omitted; public information and locked notice present]"
+    },
+    {
+      "request": {
+        "method": "GET",
+        "path": "/api/private-info",
+        "headers": {}
+      },
+      "label": "anonymous direct request",
+      "status": 401,
+      "cacheControl": "private, no-store, max-age=0",
+      "responseBody": "{\"error\":\"AUTH_REQUIRED\",\"message\":\"비공개 정보는 패스키 로그인 후 확인할 수 있습니다.\"}"
+    },
+    {
+      "request": {
+        "method": "GET",
+        "path": "/api/private-info?loggedIn=true&userId=owner",
+        "headers": {}
+      },
+      "label": "query bypass attempt",
+      "status": 401,
+      "cacheControl": "private, no-store, max-age=0",
+      "responseBody": "{\"error\":\"AUTH_REQUIRED\",\"message\":\"비공개 정보는 패스키 로그인 후 확인할 수 있습니다.\"}"
+    },
+    {
+      "request": {
+        "method": "GET",
+        "path": "/api/private-info",
+        "headers": {
+          "Cookie": "[MASKED TEST INPUT]"
+        }
+      },
+      "label": "forged cookie (test input)",
+      "status": 401,
+      "cacheControl": "private, no-store, max-age=0",
+      "responseBody": "{\"error\":\"AUTH_REQUIRED\",\"message\":\"비공개 정보는 패스키 로그인 후 확인할 수 있습니다.\"}"
+    },
+    {
+      "request": {
+        "method": "GET",
+        "path": "/api/private-info",
+        "headers": {
+          "Authorization": "[MASKED TEST INPUT]"
+        }
+      },
+      "label": "forged bearer (test input)",
+      "status": 401,
+      "cacheControl": "private, no-store, max-age=0",
+      "responseBody": "{\"error\":\"AUTH_REQUIRED\",\"message\":\"비공개 정보는 패스키 로그인 후 확인할 수 있습니다.\"}"
+    },
+    {
+      "request": {
+        "method": "GET",
+        "path": "/server/private-items.mjs",
+        "headers": {}
+      },
+      "label": "server source URL",
+      "status": 404,
+      "cacheControl": null,
+      "responseBody": ""
+    }
+  ]
+}

@@ -1116,3 +1116,18 @@ section.experience-section {
         transition-duration: 0.01ms !important;
     }
 }
+/* 비공개 칸의 상태는 배경 장식보다 위에 표시합니다. */
+#private-state,
+#private-status,
+.private-symbol {
+    position: relative;
+    z-index: 1;
+}
+
+#private-state {
+    width: fit-content;
+    padding: 5px 12px;
+    border: 1px solid var(--info-border);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.75);
+}

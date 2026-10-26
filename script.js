@@ -240,3 +240,33 @@ contactButtons.forEach((button) => {
         }
     });
 });
+
+/* 카드 1: 서버의 비로그인 차단 응답을 확인합니다. */
+async function checkPrivateAccess() {
+    const status = document.getElementById("private-status");
+    if (!status) return;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+        const response = await fetch("/api/private-info", {
+            method: "GET",
+            credentials: "same-origin",
+            cache: "no-store",
+            signal: controller.signal
+        });
+        if (response.status === 401 || response.status === 403) {
+            status.textContent = "패스키 로그인 후 비공개 정보를 확인할 수 있습니다.";
+            return;
+        }
+        // Card 3 will add rendering after a verified passkey login.
+        // Until then, no response body is inserted into the document.
+        status.textContent = "아직 비공개 정보를 열 수 없습니다. 잠시 후 다시 확인해 주세요.";
+    } catch {
+        status.textContent = "연결을 확인할 수 없습니다. 잠시 후 다시 확인해 주세요.";
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+checkPrivateAccess();
