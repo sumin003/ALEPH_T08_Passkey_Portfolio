@@ -26,11 +26,16 @@ function cookie(token, seconds) {
     return `${COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${seconds}`;
 }
 
-function config() {
-    const origin = process.env.T08_ORIGIN || "https://alepht08passkeyportfolio.vercel.app";
-    const parsed = new URL(origin);
-    if (parsed.origin !== origin || parsed.protocol !== "https:") throw new Error("invalid_configuration");
-    return { origin, rpID: parsed.hostname };
+export function config() {
+    const value = (process.env.T08_ORIGIN || "https://alepht08passkeyportfolio.vercel.app").trim();
+    let parsed;
+    try { parsed = new URL(value); } catch {
+        throw new RequestError(503, "ORIGIN_CONFIG_INVALID", "T08_ORIGIN에 올바른 HTTPS 사이트 주소를 설정해 주세요.");
+    }
+    if (parsed.protocol !== "https:" || parsed.pathname !== "/" || parsed.search || parsed.hash || parsed.username || parsed.password) {
+        throw new RequestError(503, "ORIGIN_CONFIG_INVALID", "T08_ORIGIN에는 경로가 없는 HTTPS 사이트 주소를 설정해 주세요.");
+    }
+    return { origin: parsed.origin, rpID: parsed.hostname };
 }
 
 async function bodyOf(request) {
@@ -67,21 +72,31 @@ function label(value, limit) {
 
 // This client is server-only. No publishable key or secret is bundled into browser JS.
 export function createDatabase() {
-    const base = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SECRET_KEY;
-    if (base !== "https://gywwtgecjkfmgnwkbmzl.supabase.co" || !key) throw new Error("database_not_configured");
+    const base = (process.env.SUPABASE_URL || "").trim().replace(/\/$/, "");
+    const key = (process.env.SUPABASE_SECRET_KEY || "").trim();
+    if (base !== "https://gywwtgecjkfmgnwkbmzl.supabase.co") {
+        throw new RequestError(503, "DATABASE_URL_INVALID", "SUPABASE_URL을 지정한 Supabase 프로젝트 주소로 설정해 주세요.");
+    }
+    if (!key) throw new RequestError(503, "DATABASE_KEY_MISSING", "Vercel에 SUPABASE_SECRET_KEY를 설정한 뒤 재배포해 주세요.");
     async function query(path, method = "GET", body) {
         const headers = { apikey: key, "Content-Type": "application/json", Prefer: "return=representation" };
         if (!key.startsWith("sb_secret_")) headers.Authorization = `Bearer ${key}`;
-        const response = await fetch(`${base}/rest/v1/${path}`, {
+        let response;
+        try { response = await fetch(`${base}/rest/v1/${path}`, {
             method, headers, body: body === undefined ? undefined : JSON.stringify(body),
             cache: "no-store", signal: AbortSignal.timeout(8000)
-        });
+        }); } catch {
+            throw new RequestError(503, "DATABASE_UNREACHABLE", "서버에서 DB에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        }
         if (!response.ok) {
             // Never expose upstream response bodies, credentials, request data or stack traces.
             if (response.status === 409) throw new RequestError(409, "ALREADY_REGISTERED", "이미 등록된 패스키입니다.");
             if (path.startsWith("rpc/") && response.status === 400) throw new RequestError(409, "CHALLENGE_USED", "이미 사용했거나 만료된 등록 요청입니다.");
-            throw new Error("database_request_failed");
+            if (response.status === 401 || response.status === 403) {
+                throw new RequestError(503, "DATABASE_ACCESS_DENIED", "Supabase 서버 전용 키와 T08 테이블 권한을 확인해 주세요.");
+            }
+            if (response.status === 404) throw new RequestError(503, "DATABASE_SCHEMA_MISSING", "Supabase의 T08 테이블과 등록 함수를 확인해 주세요.");
+            throw new RequestError(503, "DATABASE_REQUEST_FAILED", "DB 요청을 처리하지 못했습니다. 서버 기록을 확인해 주세요.");
         }
         return response.status === 204 ? null : response.json();
     }
@@ -95,7 +110,11 @@ export function createDatabase() {
     };
 }
 
-async function webauthn() { return import("@simplewebauthn/server"); }
+async function webauthn() {
+    try { return await import("@simplewebauthn/server"); } catch {
+        throw new RequestError(503, "PASSKEY_LIBRARY_UNAVAILABLE", "패스키 검증 라이브러리를 불러오지 못했습니다. 배포 기록을 확인해 주세요.");
+    }
+}
 
 // Dependency injection is only available to server-side tests, never HTTP request input.
 export function createRegistrationHandler({ database = createDatabase, library = webauthn, configuration = config } = {}) {
@@ -174,7 +193,10 @@ export function createRegistrationHandler({ database = createDatabase, library =
                 storage_label: challenge.storage_label }, privateAccessGranted: false },
                 200, { "Set-Cookie": cookie(token, 900) });
         } catch (error) {
-            if (error instanceof RequestError) return json({ error: error.code, message: error.message }, error.status);
+            if (error instanceof RequestError) {
+                if (error.status >= 500) console.error("t08_registration_error", error.code);
+                return json({ error: error.code, message: error.message }, error.status);
+            }
             console.error("t08_registration_service_unavailable");
             return json({ error: "SERVICE_UNAVAILABLE", message: "등록 서비스를 사용할 수 없습니다. 설정과 연결을 확인해 주세요." }, 503);
         }

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import { createRegistrationHandler, createDatabase } from "../server/registration.mjs";
+import { createRegistrationHandler, createDatabase, config } from "../server/registration.mjs";
 
 const origin = "https://alepht08passkeyportfolio.vercel.app";
 
@@ -121,5 +121,33 @@ test("cross-origin and invalid labels are refused; unsigned list requests get 40
 });
 
 test("missing server credentials never fall back to browser/public access", () => {
-    assert.throws(() => createDatabase(), /database_not_configured/);
+    const previous = { url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SECRET_KEY };
+    try {
+        process.env.SUPABASE_URL = "https://gywwtgecjkfmgnwkbmzl.supabase.co/";
+        delete process.env.SUPABASE_SECRET_KEY;
+        assert.throws(() => createDatabase(), error => error.code === "DATABASE_KEY_MISSING");
+        process.env.SUPABASE_SECRET_KEY = "dummy-test-key";
+        assert.ok(createDatabase());
+        process.env.SUPABASE_URL = "https://wrong.example";
+        assert.throws(() => createDatabase(), error => error.code === "DATABASE_URL_INVALID");
+    } finally {
+        for (const [name, value] of [["SUPABASE_URL", previous.url], ["SUPABASE_SECRET_KEY", previous.key]]) {
+            if (value === undefined) delete process.env[name]; else process.env[name] = value;
+        }
+    }
+});
+
+
+test("origin configuration accepts a trailing slash but rejects paths and non-HTTPS URLs", () => {
+    const previous = process.env.T08_ORIGIN;
+    try {
+        process.env.T08_ORIGIN = "  https://alepht08passkeyportfolio.vercel.app/  ";
+        assert.equal(config().origin, origin);
+        for (const value of ["http://example.com", origin + "/path", origin + "?q=1", "invalid"]) {
+            process.env.T08_ORIGIN = value;
+            assert.throws(() => config(), error => error.code === "ORIGIN_CONFIG_INVALID");
+        }
+    } finally {
+        if (previous === undefined) delete process.env.T08_ORIGIN; else process.env.T08_ORIGIN = previous;
+    }
 });
